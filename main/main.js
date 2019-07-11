@@ -33,71 +33,50 @@ let getUnit = (barCode) => {
     }
 
 }
-let getFormatBarCodes = (barCode) => {
-    if (barCode.indexOf('-') !== -1) {
-        let arr = barCode.split('-');
 
-        return arr[0];
+let countGoodsAmount = (barCodes) => {
+    let barCodes_arr = barCodes.reduce((res, cur) => {
+        let arr = cur.split('-');
+        if (arr.length == 1) {
+            res[cur] = res[cur] ? ++res[cur] : 1;
+        } else res[arr[0]] = res[arr[0]] ? res[arr[0]] + parseFloat(arr[1]) : parseFloat(arr[1]);
+        return res;
 
-    }
-    return barCode;
-}
-let getGoodsAmount = (barCodes) => {
-    let barCodes_arr = barCodes.filter(function (element, index, self) {
-        if (self.indexOf(getFormatBarCodes(element)) === index || self.indexOf(getFormatBarCodes(element)) === -1) {
-            return self;
-        }
-    });
-    let goodsAmount = [];
-    barCodes_arr.forEach(i => {
-        let cnt = 0;
-        barCodes.forEach(j => {
-            if (j.indexOf('-') === -1 && j.indexOf(i) !== -1) {
-                cnt++;
-            } else if (j.indexOf('-') !== -1 && j.indexOf(i) !== -1) {
-                let arr = j.split('-');
-                cnt += parseFloat(arr[1]);
-            }
-        })
-        goodsAmount.push({
-            barCode: i,
-            count: cnt
-        })
-    });
+    }, {})
 
-    return goodsAmount;
+    return barCodes_arr;
 }
 
 let getTotalPrice = (barCodes) => {
-    let goodsAmount = getGoodsAmount(barCodes);
+    let goodsAmount = countGoodsAmount(barCodes);
 
     let cnt = 0.0;
     let saved = 0.0;
     let totalPrice = [];
-    for (let i in goodsAmount) {
-
-        if (isPromotion(getFormatBarCodes(goodsAmount[i].barCode)) && goodsAmount[i].count >= 3) {
-            cnt += parseFloat(getPrice(getFormatBarCodes(goodsAmount[i].barCode))) * (goodsAmount[i].count - Math.floor(goodsAmount[i].count / 3));
-            saved += Math.floor(goodsAmount[i].count / 3) * parseFloat(getPrice(getFormatBarCodes(goodsAmount[i].barCode)));
-
-        } else cnt += parseFloat(getPrice(getFormatBarCodes(goodsAmount[i].barCode))) * parseFloat(goodsAmount[i].count);
+    for(let i in goodsAmount){
+        let price = parseFloat(getPrice(i));
+        if(isPromotion(i) && goodsAmount[i] >=3 ){
+        cnt += price * (goodsAmount[i] - Math.floor(goodsAmount[i]/ 3));
+            saved += Math.floor(goodsAmount[i]/ 3) * price;
+        } else cnt += price * parseFloat(goodsAmount[i]);
     }
     totalPrice.push(cnt);
     totalPrice.push(saved);
-    console.log(totalPrice);
     return totalPrice;
 }
 let printReceipt = (barCodes) => {
-    let goodsAmount = getGoodsAmount(barCodes);
+    let goodsAmount = countGoodsAmount(barCodes);
     let str = '***<没钱赚商店>收据***\n';
     let totalPrice = getTotalPrice(barCodes);
     for (let i in goodsAmount) {
-        if (isPromotion(getFormatBarCodes(goodsAmount[i].barCode)) && goodsAmount[i].count >= 3) {
-            str += '名称：' + getName(getFormatBarCodes(goodsAmount[i].barCode)) + '，数量：' + goodsAmount[i].count + getUnit(getFormatBarCodes(goodsAmount[i].barCode)) + '，单价：' + getPrice(getFormatBarCodes(goodsAmount[i].barCode)).toFixed(2) + '(元)，小计：' +
-            (getPrice(getFormatBarCodes(goodsAmount[i].barCode)) * (goodsAmount[i].count - Math.floor(goodsAmount[i].count / 3))).toFixed(2) + "(元)\n";
+        // let i = toi(goodsAmount[i].barCode);
+        let price = getPrice(i);
+        if (isPromotion(i) && goodsAmount[i] >= 3) {
+            str += '名称：' + getName(i) + '，数量：' + goodsAmount[i] + getUnit(i) + '，单价：' + price.toFixed(2) + '(元)，小计：' +
+                (price * (goodsAmount[i] - Math.floor(goodsAmount[i] / 3))).toFixed(2) + "(元)\n";
         } else {
-            str += '名称：' + getName(getFormatBarCodes(goodsAmount[i].barCode)) + '，数量：' + goodsAmount[i].count + getUnit(getFormatBarCodes(goodsAmount[i].barCode)) + '，单价：' + getPrice(getFormatBarCodes(goodsAmount[i].barCode)).toFixed(2) + '(元)，小计：' +
-                (getPrice(getFormatBarCodes(goodsAmount[i].barCode)) * goodsAmount[i].count).toFixed(2) + "(元)\n";
+            str += '名称：' + getName(i) + '，数量：' + goodsAmount[i] + getUnit(i) + '，单价：' + price.toFixed(2) + '(元)，小计：' +
+                (price * goodsAmount[i]).toFixed(2) + "(元)\n";
         }
 
     }
